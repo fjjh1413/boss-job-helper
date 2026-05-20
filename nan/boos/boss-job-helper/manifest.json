@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "BOSS 岗位助手 - 大模型应用开发",
+  "version": "1.0.0",
+  "description": "用户点击后读取当前 BOSS 直聘页面中已显示的岗位信息，用于个人求职分析、保存和导出。",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["https://zhipin.com/*", "https://*.zhipin.com/*"],
+  "action": {
+    "default_title": "BOSS 岗位助手",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://zhipin.com/*", "https://*.zhipin.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BOSS 岗位助手</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="app-header">
+        <div>
+          <h1>BOSS 岗位助手</h1>
+          <p>大模型应用开发岗位整理</p>
+        </div>
+        <strong id="jobCount" class="count">0</strong>
+      </header>
+
+      <section class="actions" aria-label="岗位采集操作">
+        <button id="collectPageBtn" type="button">采集当前页岗位</button>
+        <button id="collectDetailBtn" type="button">采集当前详情</button>
+        <button id="refreshBtn" type="button" class="secondary">查看已采集数量</button>
+        <button id="exportCsvBtn" type="button" class="secondary">导出 CSV</button>
+        <button id="exportJsonBtn" type="button" class="secondary">导出 JSON</button>
+        <button id="clearBtn" type="button" class="danger">清空数据</button>
+      </section>
+
+      <p id="statusText" class="status" role="status">等待操作。请先打开 BOSS 直聘搜索结果页或岗位详情页。</p>
+
+      <section class="preview-section" aria-label="已采集岗位预览">
+        <div class="section-title">
+          <h2>数据预览</h2>
+          <span>最近 10 条</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>序号</th>
+                <th>岗位名称</th>
+                <th>公司名称</th>
+                <th>城市</th>
+                <th>薪资</th>
+                <th>经验要求</th>
+                <th>学历要求</th>
+                <th>岗位职责</th>
+                <th>技术要求</th>
+                <th>出现频次关键词</th>
+                <th>适合度</th>
+                <th>匹配技术栈</th>
+                <th>简历优化建议</th>
+                <th>详情是否完整</th>
+                <th>信息完整度</th>
+                <th>岗位链接</th>
+              </tr>
+            </thead>
+            <tbody id="previewBody">
+              <tr>
+                <td colspan="16" class="empty">暂无数据</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="analyzer.js"></script>
+    <script src="storage.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
