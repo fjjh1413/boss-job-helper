@@ -1,111 +1,26 @@
-# BOSS 岗位助手
+# BOSS Job Helper
 
-这是一个 Chrome Extension Manifest V3 插件，用于在用户输入岗位检索条件和候选人画像后启动本地采集 Agent：打开 BOSS 直聘正常搜索页、自动滚动加载全部结果、跨分页建立去重岗位队列、逐个打开详情页、提取原始 JD、按薪资等条件本地筛选保存，并生成结构化 JD 摘要。
+This repository contains a Chrome Manifest V3 extension for collecting and analyzing job information that is visibly rendered in a signed-in BOSS Zhipin page.
 
-## 重要边界
+## Scope
 
-- 不绕过登录、验证码或平台限制。
-- 不请求 BOSS 直聘接口，不做高频自动请求。
-- Agent 只做用户可见的低频页面操作：打开搜索页、滚动结果、切换正常分页、打开岗位详情页。
-- 不绕过登录、验证码、风控或平台限制；遇到登录/验证码会暂停，用户处理后点击「启动 Agent」继续。
-- 只读取当前浏览器页面 DOM 中已经显示且未隐藏的岗位文本，不猜测页面未展示的字段。
-- 100+ 只是容量要求，不是停止条件；停止条件是当前查询结果确认耗尽、用户停止或需要用户处理登录/验证码。
-- 详情采集后才执行本地薪资范围筛选；被筛选掉的岗位仍计入详情完成数，不会提前截断搜索队列。
-- 数据仅保存在浏览器本地 IndexedDB 中，用于个人求职分析和学习。
-- 不修改浏览器安全策略，不包含破解、批量爬取或规避限制逻辑。
+- Reads visible job-card and job-detail DOM content from the current browser page.
+- Keeps collection state, pause/resume/stop controls, retries, deduplication, and progress in the extension.
+- Stores collected records locally in the browser IndexedDB.
+- Provides structured job analysis, candidate matching, JD summaries, and CSV/JSON export.
+- Does not bypass login, CAPTCHA, anti-bot controls, platform restrictions, or hidden data access.
 
-## 安装方法
+## Install Locally
 
-1. 打开 Chrome，进入 `chrome://extensions/`。
-2. 开启右上角「开发者模式」。
-3. 点击「加载已解压的扩展程序」。
-4. 选择本项目目录 `boss-job-helper`。
-5. 打开 BOSS 直聘页面后，点击浏览器工具栏中的插件图标使用。
+1. Open `chrome://extensions/` in Chrome.
+2. Enable Developer mode.
+3. Choose **Load unpacked**.
+4. Select this repository directory.
+5. Open a BOSS Zhipin search-results page and use the extension toolbar button.
 
-## 使用方法
-
-1. 在插件顶部输入职位关键词、工作地点和月薪范围。
-2. 配置候选人学历、经验、目标职位、偏好城市、技能、期望薪资、工作类型、必须条件和可放宽条件。
-3. 设置详情页间隔和失败重试次数，点击「启动 Agent」。
-4. 首次遇到登录或验证码时，先在 BOSS 页面手动完成处理，再回到插件点击「启动 Agent」继续。
-5. Agent 会滚动并读取每个搜索页，去重建立队列，逐个打开详情页，展开可展开 JD，校验岗位身份后保存。
-6. 每条详情失败只重试该条，最终失败会记录原因并继续后续岗位；任务不会因单条异常中断。
-7. 预览表格会展示本地 JD 摘要和候选人匹配结果；使用「导出 CSV」或「导出 JSON」导出数据。
-8. 仍可使用手动采集按钮做小范围采集，但手动操作会在 Agent 运行时锁定，避免并发写入。
-
-## 输出字段
-
-CSV 表头严格按以下顺序导出：
+## Development
 
 ```text
-序号,岗位名称,公司名称,城市,薪资,经验要求,学历要求,专业要求,岗位职责,技术要求,JD总结,出现频次关键词,候选人匹配度,能力缺口,适配度,匹配技术栈,简历优化建议,详情是否完整,信息完整度,岗位链接
-```
-
-字段说明：
-
-- 序号：本地保存时自动生成，从 1 开始递增。
-- 岗位名称：从岗位卡片或详情页标题中提取。
-- 公司名称：从岗位卡片或详情页公司信息中提取。
-- 城市：从页面地点文本中识别，例如北京、上海、杭州、深圳等。
-- 薪资：提取页面显示薪资，例如 `10-15K`、`15-25K·13薪`、`200-300元/天`。
-- 经验要求：提取 `经验不限`、`在校/应届`、`1-3年`、`3-5年` 等。
-- 学历要求：提取 `大专`、`本科`、`硕士`、`博士` 等。
-- 专业要求：优先从「专业要求、专业背景、所学专业、专业方向」等分段提取；没有明确分段时识别计算机、软件工程、人工智能、数据科学、数学、统计、电子信息等相关专业要求。
-- 岗位职责：优先从「岗位职责、工作内容、职位描述」等分段提取；没有明确分段时从详情文本中识别工作内容句子。
-- 技术要求：优先从「任职要求、岗位要求、技能要求、能力要求」等分段提取；没有明确分段时从详情文本中识别技术相关句子。
-- JD总结：根据公司、岗位、地点、薪资、经验学历、岗位职责、技术要求和技术栈生成本地摘要；列表页数据不足时会提示补采详情。
-- 出现频次关键词：统计大模型应用开发关键词，例如 `Python(3)、RAG(2)、LangChain(1)`。
-- 候选人匹配度：根据可配置候选人画像计算，未填写画像时显示待完善。
-- 能力缺口：列出 JD 中未发现的候选人技能或不满足的画像条件。
-- 适配度：显示高度匹配、较匹配、部分匹配或匹配度较低。
-- 匹配技术栈：提取 Python、Java、Spring Boot、Vue、FastAPI、LangChain、Dify、RAG、Agent、向量数据库、MySQL、Redis、Docker、Linux、Git、Prompt Engineering、API 调用、知识库问答等。
-- 简历优化建议：根据岗位要求自动生成一句投递或学习建议。
-- 详情是否完整：列表页采集显示为“否”；详情页采集显示为“是”，如检测到“查看更多信息”等未展开提示则显示“可能未完整”。
-- 信息完整度：按已识别字段估算的完整度百分比，用于提醒哪些岗位需要补采详情。
-- 岗位链接：保存当前详情页链接或岗位卡片链接。
-
-## 项目结构
-
-```text
-boss-job-helper/
-├── manifest.json
-├── background.js
-├── popup.html
-├── popup.js
-├── content.js
-├── storage.js
-├── analyzer.js
-├── agent-state.js
-├── runner.html
-├── runner.js
-├── style.css
-└── README.md
-```
-
-## 核心文件
-
-- `background.js`：持久化 Agent 状态机，负责启动、暂停恢复、停止、状态恢复和消息权限校验。
-- `runner.js` / `runner.html`：在扩展页面中驱动搜索页、详情页、重试、筛选和逐条保存，避免把长任务放在 service worker 内存中。
-- `agent-state.js`：纯状态转换模块，维护队列游标、分页进度、访问过的页面、详情统计和失败记录。
-- `content.js`：只读取当前页面可见 DOM 文本，解析岗位卡片和岗位详情，自动滚动、展开 JD 并识别登录/验证码页面。
-- `analyzer.js`：实现字段归一化、详情身份校验、候选人匹配、薪资筛选、技术栈提取和 JD 摘要。
-- `storage.js`：使用 IndexedDB 本地保存岗位，按岗位链接优先去重，并以单事务 upsert 防止长任务中断。
-- `popup.js`：处理按钮事件、调用内容脚本、保存数据和导出文件。
-- `tests/analyzer.test.js`：覆盖字段归一化、详情身份校验、候选人匹配和薪资筛选。
-- `tests/agent-state.test.js`：覆盖 100+ 队列、分页去重、详情统计和失败继续处理。
-
-`analyzer.js` 中单独实现了以下函数：
-
-- `extractKeywords(text)`
-- `analyzeSuitability(job, candidateProfile)`
-- `analyzeCandidateMatch(job, candidateProfile)`
-- `extractTechStack(text)`
-- `generateResumeAdvice(job)`
-- `generateJdSummary(job)`
-
-## 验证
-
-```bash
 npm test
 node --check analyzer.js
 node --check background.js
@@ -113,13 +28,17 @@ node --check content.js
 node --check popup.js
 ```
 
-## 注意事项
+## Main Modules
 
-- BOSS 直聘页面结构可能变化，如果采集结果为空，可在 `content.js` 中补充新的 CSS 选择器。
-- Agent 会按用户设置低频滚动并切换正常分页，直到确认当前查询结果耗尽；不会调用接口或绕过平台限制。
-- 如果页面要求登录或出现验证码，Agent 会暂停并保留队列；用户处理页面状态后点击「启动 Agent」即可继续。
-- 如果 BOSS 页面没有可识别的下一页链接，且滚动结果无法确认耗尽，Agent 会报错停止，避免静默漏采。
-- 搜索结果页右侧详情的岗位链接会优先使用左侧选中卡片链接；如果无法可靠匹配，不会把搜索页 URL 当作岗位详情链接。
-- 如果薪资数字由页面自定义字体映射显示，DOM 中可能不是明文数字。插件会优先从可见节点文本、属性、dataset 和伪元素内容中读取明文薪资；如果仍只有字体映射字符，会标记为“薪资数字被页面字体加密，未读取到明文”，不会破解字体或绕过平台限制。
-- 每条保存记录至少包含岗位名、公司、地点、薪资、经验、学历、详情链接、原始 JD 和结构化摘要；页面确实未展示的字段保存为“未展示”，无法识别的列表字段保存为“未识别”。
-- 插件保存的数据只在当前浏览器本地存在，卸载扩展或清除站点/扩展数据可能导致数据丢失。
+- `background.js`: persistent agent state, runner-tab lifecycle, pause/resume/stop handling, and message routing.
+- `runner.js` / `runner.html`: collection orchestration, detail processing, retries, pagination, progress, and the runner console.
+- `content.js`: visible DOM collection for search results and job details.
+- `agent-state.js`: pure state transitions, queue progress, deduplication, and failure records.
+- `analyzer.js`: field normalization, JD analysis, keyword extraction, candidate matching, and resume advice.
+- `storage.js`: local IndexedDB persistence and URL-based upsert behavior.
+- `popup.js`: user controls, local data preview, and export actions.
+- `tests/`: regression tests for analysis, state transitions, link handling, and export safety.
+
+## Data and Privacy
+
+Collected job records remain in the browser's local extension storage. Do not share exported data, browser profiles, HAR files, cookies, or authentication tokens publicly.
