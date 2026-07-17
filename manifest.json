@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "BOSS 岗位助手",
+  "version": "1.1.0",
+  "description": "可恢复的 BOSS 岗位采集 Agent：读取搜索结果、逐条采集详情、筛选保存并生成候选人匹配摘要。",
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": ["https://zhipin.com/*", "https://*.zhipin.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "BOSS 岗位助手",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://zhipin.com/*", "https://*.zhipin.com/*"],
+      "js": ["shared.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

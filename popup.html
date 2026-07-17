@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BOSS 岗位助手</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="app-header">
+        <div>
+          <h1>BOSS 岗位助手</h1>
+          <p>大模型应用开发岗位整理</p>
+        </div>
+        <strong id="jobCount" class="count">0</strong>
+      </header>
+
+      <section class="search-panel" aria-label="岗位检索条件">
+        <label>
+          <span>职位关键词</span>
+          <input id="keywordInput" type="search" placeholder="如 AI应用开发 / Java后端">
+        </label>
+        <label>
+          <span>工作地点</span>
+          <input id="cityInput" type="text" placeholder="如 北京 / 上海 / 杭州">
+        </label>
+        <label>
+          <span>最低月薪(K)</span>
+          <input id="minSalaryInput" type="number" min="0" step="1" placeholder="如 10">
+        </label>
+        <label>
+          <span>最高月薪(K)</span>
+          <input id="maxSalaryInput" type="number" min="0" step="1" placeholder="如 25">
+        </label>
+      </section>
+
+      <section class="profile-panel search-panel" aria-label="候选人画像">
+        <label>
+          <span>学历</span>
+          <input id="educationInput" type="text" placeholder="如 本科">
+        </label>
+        <label>
+          <span>工作年限</span>
+          <input id="yearsOfExperienceInput" type="text" placeholder="如 0-1年">
+        </label>
+        <label>
+          <span>目标职位</span>
+          <input id="targetRolesInput" type="text" placeholder="如 后端 / AI应用">
+        </label>
+        <label>
+          <span>偏好城市</span>
+          <input id="preferredCitiesInput" type="text" placeholder="如 北京 / 杭州">
+        </label>
+        <label>
+          <span>技能关键词</span>
+          <input id="skillsInput" type="text" placeholder="如 Python、Java、RAG">
+        </label>
+        <label>
+          <span>期望薪资</span>
+          <input id="preferredSalaryInput" type="text" placeholder="如 10-20K">
+        </label>
+        <label>
+          <span>工作类型</span>
+          <input id="workTypesInput" type="text" placeholder="如 全职 / 实习 / 远程">
+        </label>
+        <label>
+          <span>必须满足</span>
+          <input id="mustHaveInput" type="text" placeholder="如 Python、杭州">
+        </label>
+        <label>
+          <span>可放宽条件</span>
+          <input id="flexibleOnInput" type="text" placeholder="如 学历、薪资">
+        </label>
+      </section>
+
+      <section class="agent-panel" aria-label="自动采集agent">
+        <div>
+          <strong>采集 Agent</strong>
+          <span id="agentStatusText">空闲</span>
+        </div>
+        <div class="agent-config">
+          <label>
+            <span>详情间隔(秒)</span>
+            <input id="delaySecondsInput" type="number" min="1.2" max="10" step="0.5" value="2.2">
+          </label>
+          <label>
+            <span>失败重试</span>
+            <input id="maxRetriesInput" type="number" min="0" max="5" step="1" value="2">
+          </label>
+        </div>
+        <div class="agent-actions">
+          <button id="startAgentBtn" type="button">启动 Agent</button>
+          <button id="stopAgentBtn" type="button" class="danger">停止</button>
+        </div>
+      </section>
+
+      <section class="actions" aria-label="岗位采集操作">
+        <button id="openSearchBtn" type="button">打开搜索页</button>
+        <button id="collectMatchedBtn" type="button">按条件采集</button>
+        <button id="collectPageBtn" type="button">采集当前页岗位</button>
+        <button id="collectDetailBtn" type="button">采集当前详情</button>
+        <button id="refreshBtn" type="button" class="secondary">查看已采集数量</button>
+        <button id="exportCsvBtn" type="button" class="secondary">导出 CSV</button>
+        <button id="exportJsonBtn" type="button" class="secondary">导出 JSON</button>
+        <button id="clearBtn" type="button" class="danger">清空数据</button>
+      </section>
+
+      <p id="statusText" class="status" role="status">等待操作。请先打开 BOSS 直聘搜索结果页或岗位详情页。</p>
+
+      <section class="preview-section" aria-label="已采集岗位预览">
+        <div class="section-title">
+          <h2>数据预览</h2>
+          <span>最近 10 条</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>序号</th>
+                <th>岗位名称</th>
+                <th>公司名称</th>
+                <th>城市</th>
+                <th>薪资</th>
+                <th>经验要求</th>
+                <th>学历要求</th>
+                <th>专业要求</th>
+                <th>岗位职责</th>
+                <th>技术要求</th>
+                <th>JD总结</th>
+                <th>出现频次关键词</th>
+                <th>候选人匹配度</th>
+                <th>能力缺口</th>
+                <th>适合度</th>
+                <th>匹配技术栈</th>
+                <th>简历优化建议</th>
+                <th>详情是否完整</th>
+                <th>信息完整度</th>
+                <th>岗位链接</th>
+              </tr>
+            </thead>
+            <tbody id="previewBody">
+              <tr>
+                <td colspan="20" class="empty">暂无数据</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="shared.js"></script>
+    <script src="analyzer.js"></script>
+    <script src="storage.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "boss-job-helper",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node tests/analyzer.test.js && node tests/agent-state.test.js && node tests/shared.test.js"
+  },
+  "description": "这是一个 Chrome Extension Manifest V3 插件，用于在用户输入岗位检索条件后启动本地采集 Agent：打开 BOSS 直聘正常搜索页、自动滚动加载当前搜索结果、建立去重岗位队列、逐个打开详情页、提取完整 JD、按条件筛选保存，并生成本地 JD 摘要。",
+  "main": "analyzer.js",
+  "directories": {
+    "test": "tests"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

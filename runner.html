@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>岗位采集 Agent</title>
+    <link rel="stylesheet" href="runner.css">
+  </head>
+  <body>
+    <main class="runner-app">
+      <header class="runner-header">
+        <div>
+          <p class="eyebrow">BOSS 岗位助手</p>
+          <h1>岗位采集 Agent</h1>
+          <p id="runnerSubtitle" class="subtitle">正在连接任务状态...</p>
+        </div>
+        <span id="runnerStatusBadge" class="status-badge" data-status="idle">空闲</span>
+      </header>
+
+      <section class="control-bar" aria-label="任务控制">
+        <button id="pauseBtn" class="button secondary" type="button">暂停</button>
+        <button id="resumeBtn" class="button secondary" type="button">继续</button>
+        <button id="viewBossBtn" class="button secondary" type="button">查看工作页面</button>
+        <button id="stopBtn" class="button danger" type="button">结束任务</button>
+      </section>
+
+      <section class="metrics" aria-label="采集统计">
+        <article class="metric"><span>已发现</span><strong id="discoveredCount">0</strong></article>
+        <article class="metric"><span>待处理</span><strong id="queuedCount">0</strong></article>
+        <article class="metric"><span>详情成功</span><strong id="detailsCount">0</strong></article>
+        <article class="metric"><span>已保存</span><strong id="savedCount">0</strong></article>
+        <article class="metric"><span>失败</span><strong id="failedCount">0</strong></article>
+      </section>
+
+      <section class="stage-panel" aria-label="采集阶段">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">任务进度</p>
+            <h2 id="phaseTitle">等待任务</h2>
+          </div>
+          <span id="progressText" class="progress-text">0 / 0</span>
+        </div>
+        <div class="stage-rail" role="list">
+          <div class="stage" data-stage="collecting_list" role="listitem"><span>1</span><b>读取列表</b></div>
+          <div class="stage" data-stage="queue_ready" role="listitem"><span>2</span><b>准备详情</b></div>
+          <div class="stage" data-stage="opening_detail" role="listitem"><span>3</span><b>打开岗位</b></div>
+          <div class="stage" data-stage="saving" role="listitem"><span>4</span><b>保存分析</b></div>
+          <div class="stage" data-stage="completed" role="listitem"><span>5</span><b>完成</b></div>
+        </div>
+      </section>
+
+      <section class="focus-panel" aria-live="polite">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">当前工作</p>
+            <h2 id="currentTitle">暂无岗位</h2>
+          </div>
+          <span id="currentStage" class="stage-label">等待中</span>
+        </div>
+        <p id="currentMessage" class="current-message">任务状态将在这里实时更新。</p>
+        <a id="currentLink" class="current-link" href="#" target="_blank" rel="noreferrer" hidden>打开当前岗位</a>
+      </section>
+
+      <section id="actionNotice" class="action-notice" aria-live="assertive" hidden>
+        <div>
+          <strong id="actionTitle">需要处理</strong>
+          <p id="actionMessage"></p>
+        </div>
+        <button id="resumeActionBtn" class="button" type="button">继续任务</button>
+      </section>
+
+      <section class="activity-panel" aria-label="运行日志">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">运行日志</p>
+            <h2>最近活动</h2>
+          </div>
+          <span id="lastHeartbeat" class="muted">等待心跳</span>
+        </div>
+        <ol id="activityList" class="activity-list">
+          <li class="empty-activity">等待 Agent 开始运行。</li>
+        </ol>
+      </section>
+
+      <p id="runnerStatus" class="sr-only">岗位采集 Agent 正在初始化。</p>
+    </main>
+    <script src="shared.js"></script>
+    <script src="agent-state.js"></script>
+    <script src="analyzer.js"></script>
+    <script src="storage.js"></script>
+    <script src="runner.js"></script>
+  </body>
+</html>
