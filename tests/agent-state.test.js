@@ -27,6 +27,28 @@ test("creates an exhaustive run state without a job-count stop condition", () =>
   assert.equal(Object.hasOwn(state.criteria, "maxJobs"), false);
 });
 
+test("tracks response-first detail collection metrics independently from DOM fallback", () => {
+  const state = AgentState.createRunState({}, {}, "2026-07-12T00:00:00.000Z");
+  assert.equal(state.counts.responseCaptured, 0);
+  assert.equal(state.counts.domFallback, 0);
+
+  const responseState = AgentState.recordJobResult(
+    AgentState.appendJobs(state, [{ title: "A", link: "https://www.zhipin.com/job_detail/a.html" }]),
+    { status: "saved", detailCompleted: true, collectionMethod: "response" },
+    "2026-07-12T00:02:00.000Z"
+  );
+  assert.equal(responseState.counts.responseCaptured, 1);
+  assert.equal(responseState.counts.domFallback, 0);
+
+  const fallbackState = AgentState.recordJobResult(
+    AgentState.appendJobs(responseState, [{ title: "B", link: "https://www.zhipin.com/job_detail/b.html" }]),
+    { status: "saved", detailCompleted: true, collectionMethod: "dom" },
+    "2026-07-12T00:03:00.000Z"
+  );
+  assert.equal(fallbackState.counts.responseCaptured, 1);
+  assert.equal(fallbackState.counts.domFallback, 1);
+});
+
 test("treats a user-paused task as resumable instead of terminal", () => {
   assert.equal(AgentState.isPaused("paused_user"), true);
   assert.equal(AgentState.isRunning("paused_user"), false);

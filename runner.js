@@ -25,7 +25,7 @@
     preflight: "准备中",
     collecting_list: "读取列表",
     queue_ready: "准备详情",
-    opening_detail: "打开岗位",
+    opening_detail: "读取详情",
     waiting_detail: "等待详情",
     extracting: "提取 JD",
     filtering: "筛选岗位",
@@ -260,6 +260,7 @@
             status: "skipped",
             job: normalized,
             detailCompleted: true,
+            collectionMethod: normalized.collectionMethod,
             missingFields,
             reason: criteriaMatch.reason,
             stage: "local_filter",
@@ -270,7 +271,14 @@
         await patchState({ status: "saving", phase: "saving", message: `正在保存：${normalized.title}` });
         if (typeof JobStorage.upsertJob === "function") await JobStorage.upsertJob(normalized);
         else await JobStorage.saveJobs([normalized]);
-        await recordResult(state, { status: "saved", job: normalized, detailCompleted: true, missingFields, retryCount: attempt });
+        await recordResult(state, {
+          status: "saved",
+          job: normalized,
+          detailCompleted: true,
+          collectionMethod: normalized.collectionMethod,
+          missingFields,
+          retryCount: attempt
+        });
         return;
       } catch (error) {
         if (error && (error.code === "AGENT_STOPPED" || error.code === "AGENT_PAUSED")) throw error;
@@ -299,7 +307,7 @@
     await sleep(Number(state.criteria?.delayMs) || DEFAULT_DELAY_MS);
     await ensureContentScript(tabId);
 
-    await patchState({ status: "opening_detail", phase: "opening_detail", message: `正在进入详情面板：${item.title || "未识别岗位"}` });
+    await patchState({ status: "opening_detail", phase: "opening_detail", message: `正在读取右侧详情：${item.title || "未识别岗位"}` });
     const response = await sendAgentTabMessage(tabId, { type: "COLLECT_DETAIL_FOR_JOB_AGENT_V1", job: item }, Math.max(MESSAGE_TIMEOUT_MS, 12000));
     if (response?.requiresUserAction) {
       const error = createAgentError(response.message || "详情页需要用户处理。", "preflight");
@@ -318,7 +326,18 @@
     const identity = JobAnalyzer.isDetailRecordConsistent(item, detailRaw);
     if (!identity.ok) throw createAgentError(identity.reason, "validate_identity");
 
-    return JobAnalyzer.normalizeJobRecord(mergeListAndDetailRaw(item, detailRaw), state.candidateProfile || {});
+    const normalized = JobAnalyzer.normalizeJobRecord(mergeListAndDetailRaw(item, detailRaw), state.candidateProfile || {});
+    normalized.collectionMethod = detailRaw.collectionMethod || response.collectionMethod || "dom";
+    normalized.captureConfidence = Number(detailRaw.captureConfidence || response.captureConfidence) || (normalized.collectionMethod === "response" ? 0.995 : 0.96);
+    normalized.responseUrl = detailRaw.responseUrl || response.responseUrl || "";
+    await patchState({
+      status: "extracting",
+      phase: "extracting",
+      message: normalized.collectionMethod === "response"
+        ? `已捕获岗位详情接口响应：${normalized.title}`
+        : `接口未返回完整详情，已回退右侧详情面板：${normalized.title}`
+    });
+    return normalized;
   }
 
   async function recordResult(state, result) {
@@ -376,7 +395,12 @@
     } catch (error) {
     }
 
-    await chrome.scripting.executeScript({ target: { tabId }, files: ["shared.js", "content.js"] });
+    try {
+      await chrome.scripting.executeScript({ target: { tabId }, files: ["bridge.js"], world: "MAIN" });
+    } catch (error) {
+      // Static document_start injection is the primary path; this covers already-open tabs.
+    }
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["shared.js", "boss-response.js", "content.js"] });
   }
 
   async function sendAgentTabMessage(tabId, message, timeoutMs) {
@@ -604,6 +628,8 @@
     document.getElementById("detailsCount").textContent = String(state.detailsCompleted ?? counts.detailsCompleted ?? 0);
     document.getElementById("savedCount").textContent = String(state.saved ?? counts.saved ?? 0);
     document.getElementById("failedCount").textContent = String(state.failed ?? counts.failed ?? 0);
+    document.getElementById("responseCount").textContent = String(counts.responseCaptured || 0);
+    document.getElementById("fallbackCount").textContent = String(counts.domFallback || 0);
     document.getElementById("progressText").textContent = `${processed} / ${queued}`;
     document.getElementById("lastHeartbeat").textContent = state.runnerLastSeen ? `心跳 ${formatTime(state.runnerLastSeen)}` : "等待心跳";
     document.getElementById("runnerStatus").textContent = `${statusLabel}：${state.message || "无状态消息"}`;

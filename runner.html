@@ -28,6 +28,8 @@
         <article class="metric"><span>已发现</span><strong id="discoveredCount">0</strong></article>
         <article class="metric"><span>待处理</span><strong id="queuedCount">0</strong></article>
         <article class="metric"><span>详情成功</span><strong id="detailsCount">0</strong></article>
+        <article class="metric"><span>接口采集</span><strong id="responseCount">0</strong></article>
+        <article class="metric"><span>面板回退</span><strong id="fallbackCount">0</strong></article>
         <article class="metric"><span>已保存</span><strong id="savedCount">0</strong></article>
         <article class="metric"><span>失败</span><strong id="failedCount">0</strong></article>
       </section>
@@ -43,7 +45,7 @@
         <div class="stage-rail" role="list">
           <div class="stage" data-stage="collecting_list" role="listitem"><span>1</span><b>读取列表</b></div>
           <div class="stage" data-stage="queue_ready" role="listitem"><span>2</span><b>准备详情</b></div>
-          <div class="stage" data-stage="opening_detail" role="listitem"><span>3</span><b>打开岗位</b></div>
+          <div class="stage" data-stage="opening_detail" role="listitem"><span>3</span><b>读取详情</b></div>
           <div class="stage" data-stage="saving" role="listitem"><span>4</span><b>保存分析</b></div>
           <div class="stage" data-stage="completed" role="listitem"><span>5</span><b>完成</b></div>
         </div>
@@ -85,6 +87,7 @@
       <p id="runnerStatus" class="sr-only">岗位采集 Agent 正在初始化。</p>
     </main>
     <script src="shared.js"></script>
+    <script src="boss-response.js"></script>
     <script src="agent-state.js"></script>
     <script src="analyzer.js"></script>
     <script src="storage.js"></script>

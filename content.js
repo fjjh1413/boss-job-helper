@@ -7,6 +7,7 @@
     return;
   }
   const CONTENT_SCRIPT_VERSION = CONFIG.CONTENT_SCRIPT_VERSION;
+  const DETAIL_RESPONSE_TIMEOUT_MS = Number(CONFIG.DETAIL_RESPONSE_TIMEOUT_MS) || 4500;
   const DETAIL_UNEXPANDED_WARNING = "当前岗位详情可能未展开，请点击查看更多信息后重新采集。";
 
   if (window.__bossJobHelperContentVersion === CONTENT_SCRIPT_VERSION) {
@@ -14,6 +15,66 @@
   }
   window.__bossJobHelperContentLoaded = true;
   window.__bossJobHelperContentVersion = CONTENT_SCRIPT_VERSION;
+  const BossResponse = window.BossResponse;
+  const capturedDetailResponses = [];
+  const detailResponseListeners = new Set();
+  const MAX_CAPTURED_RESPONSES = 40;
+
+  function rememberDetailResponse(event) {
+    const data = event?.data;
+    if (event.source !== window || !data || data.source !== "boss-job-helper" || data.type !== "BOSS_DETAIL_RESPONSE") return;
+    if (!data.body || !data.requestUrl) return;
+    const captured = {
+      sourceUrl: String(data.requestUrl),
+      method: String(data.method || "GET"),
+      status: Number(data.status) || 0,
+      body: String(data.body),
+      capturedAt: Number(data.capturedAt) || Date.now()
+    };
+    capturedDetailResponses.push(captured);
+    while (capturedDetailResponses.length > MAX_CAPTURED_RESPONSES) capturedDetailResponses.shift();
+    detailResponseListeners.forEach((listener) => listener(captured));
+  }
+
+  window.addEventListener("message", rememberDetailResponse);
+
+  function createResponseJob(captured, targetJob) {
+    if (!BossResponse || typeof BossResponse.normalizeDetailResponse !== "function") {
+      return { ok: false, reason: "response_parser_unavailable" };
+    }
+    return BossResponse.normalizeDetailResponse(captured.body, {
+      sourceUrl: captured.sourceUrl,
+      status: captured.status,
+      targetJob
+    });
+  }
+
+  function waitForMatchingDetailResponse(targetJob, timeoutMs = DETAIL_RESPONSE_TIMEOUT_MS) {
+    const startedAt = Date.now();
+    const buffered = capturedDetailResponses
+      .filter((item) => item.capturedAt >= startedAt)
+      .map((item) => createResponseJob(item, targetJob))
+      .find((result) => result.ok);
+    if (buffered) return Promise.resolve(buffered);
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (result) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        detailResponseListeners.delete(onResponse);
+        resolve(result);
+      };
+      const onResponse = (captured) => {
+        if (captured.capturedAt < startedAt) return;
+        const result = createResponseJob(captured, targetJob);
+        if (result.ok) finish(result);
+      };
+      const timer = setTimeout(() => finish({ ok: false, reason: "response_timeout" }), Math.max(1000, timeoutMs));
+      detailResponseListeners.add(onResponse);
+    });
+  }
 
   const CARD_SELECTORS = [
     ".job-card-wrapper",
@@ -714,6 +775,8 @@
     return {
       ok: true,
       version: CONTENT_SCRIPT_VERSION,
+      collectionMethod: "dom",
+      captureConfidence: 0.96,
       warning,
       jobs: [job]
     };
@@ -730,6 +793,11 @@
 
   function findJobCardForSelection(targetJob = {}) {
     const targetLink = targetJob.link || "";
+    if (targetLink) {
+      const direct = [...document.querySelectorAll("a[href*='/job_detail/']")]
+        .find((anchor) => sameJobDetailLink(anchor.href, targetLink));
+      if (direct) return getCardRoot(direct);
+    }
     const candidates = collectCardRoots();
     return candidates.find((card) => {
       const cardJob = parseJobFromRoot(card, "list");
@@ -768,16 +836,14 @@
   }
 
   function activateJobCard(card) {
-    const candidates = [
-      card.querySelector("[role='button']"),
-      card.querySelector(".job-card-left"),
-      card.querySelector(".job-card-body"),
-      card.querySelector(".job-card-box"),
-      card
-    ].filter((element, index, list) => element
-      && list.indexOf(element) === index
-      && !element.matches?.("a[href], button, input, textarea, select"));
-    (candidates.length ? candidates : [card]).forEach(dispatchCardClick);
+    const target = card.matches?.("li.job-card-box, .job-card-box, .job-card-wrapper")
+      ? card
+      : card.querySelector("[role='button'], .job-card-left, .job-card-body") || card;
+    if (target.matches?.("a[href], button, input, textarea, select")) {
+      dispatchCardClick(target.parentElement || card);
+      return;
+    }
+    dispatchCardClick(target);
   }
 
   async function collectDetailFromSearchCard(targetJob = {}) {
@@ -796,7 +862,25 @@
     if (!card) return { ok: false, version: CONTENT_SCRIPT_VERSION, error: "当前搜索页未找到对应岗位卡片，无法进入详情面板。" };
 
     card.scrollIntoView({ block: "center", behavior: "auto" });
+    const responsePromise = waitForMatchingDetailResponse(targetJob, DETAIL_RESPONSE_TIMEOUT_MS);
     activateJobCard(card);
+
+    const captured = await responsePromise;
+    if (captured.ok && captured.job?.detailCompleted) {
+      return {
+        ok: true,
+        version: CONTENT_SCRIPT_VERSION,
+        collectionMethod: "response",
+        captureConfidence: captured.job.captureConfidence,
+        responseUrl: captured.job.responseUrl,
+        jobs: [{
+          ...captured.job,
+          warning: "",
+          collectWarnings: [],
+          detailStatus: "complete"
+        }]
+      };
+    }
 
     const deadline = Date.now() + 10000;
     while (Date.now() < deadline) {
@@ -818,7 +902,13 @@
       return collectCurrentDetailV2();
     }
 
-    return { ok: false, version: CONTENT_SCRIPT_VERSION, error: "岗位卡片已选中，但详情面板未在限定时间内加载。" };
+    return {
+      ok: false,
+      version: CONTENT_SCRIPT_VERSION,
+      error: captured.reason === "response_timeout"
+        ? "岗位详情接口和右侧详情面板均未在限定时间内返回。"
+        : "岗位卡片已选中，但详情面板未在限定时间内加载。"
+    };
   }
 
   function getCardRoot(element) {

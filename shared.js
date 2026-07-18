@@ -8,11 +8,12 @@
 
   const config = Object.freeze({
     SEARCH_URL: "https://www.zhipin.com/web/geek/jobs",
-    CONTENT_SCRIPT_VERSION: "2026-07-13-agent-v3",
+    CONTENT_SCRIPT_VERSION: "2026-07-18-agent-v4-response-first",
     PAGE_LOAD_TIMEOUT_MS: 30000,
     MESSAGE_TIMEOUT_MS: 30000,
     DEFAULT_DELAY_MS: 2200,
     SEARCH_COLLECTION_TIMEOUT_MS: 180000,
+    DETAIL_RESPONSE_TIMEOUT_MS: 4500,
     MAX_SCROLL_ROUNDS: 60,
     CITY_CODE_MAP: Object.freeze({
       北京: "101010100",

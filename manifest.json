@@ -15,7 +15,13 @@
   "content_scripts": [
     {
       "matches": ["https://zhipin.com/*", "https://*.zhipin.com/*"],
-      "js": ["shared.js", "content.js"],
+      "js": ["bridge.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://zhipin.com/*", "https://*.zhipin.com/*"],
+      "js": ["shared.js", "boss-response.js", "content.js"],
       "run_at": "document_idle"
     }
   ]

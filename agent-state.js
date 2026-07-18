@@ -92,7 +92,9 @@
         saved: 0,
         failed: 0,
         skipped: 0,
-        missingFields: 0
+        missingFields: 0,
+        responseCaptured: 0,
+        domFallback: 0
       },
       failures: [],
       search: {
@@ -143,6 +145,10 @@
     next.counts.processed += 1;
     next.counts.detailsCompleted = Number(next.counts.detailsCompleted) || 0;
     if (outcome.detailCompleted) next.counts.detailsCompleted += 1;
+    next.counts.responseCaptured = Number(next.counts.responseCaptured) || 0;
+    next.counts.domFallback = Number(next.counts.domFallback) || 0;
+    if (outcome.collectionMethod === "response") next.counts.responseCaptured += 1;
+    if (outcome.collectionMethod === "dom") next.counts.domFallback += 1;
     next.counts[status] += 1;
     next.counts.missingFields += Array.isArray(outcome.missingFields) ? outcome.missingFields.length : 0;
 
