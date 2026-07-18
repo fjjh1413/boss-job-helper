@@ -159,16 +159,30 @@
       search: {
         ...(response.search || {}),
         currentUrl: response.pageUrl || currentUrl,
-        visitedPageUrls: [response.pageUrl || currentUrl].filter(Boolean)
+        visitedPageUrls: [response.pageUrl || currentUrl].filter(Boolean),
+        diagnostics: response.diagnostics || null
       }
     });
     if (!pageState.ok) throw new Error(pageState.error || "岗位队列保存失败。 ");
+
+    const diagnostics = response.diagnostics || {};
+    if (!(response.jobs || []).length && diagnostics.reasonCode !== "no_results") {
+      const detail = [
+        diagnostics.message || "搜索页没有识别到岗位。",
+        `可见岗位链接${Number(diagnostics.visibleJobLinks) || 0}`,
+        `候选卡片${Number(diagnostics.visibleCardRoots) || 0}`,
+        `已解析${Number(diagnostics.parsedJobs) || 0}`
+      ].join("，");
+      throw createAgentError(`搜索列表采集失败：${detail}`, "collect_list");
+    }
 
     if (response.exhausted) {
       await patchState({
         status: "queue_ready",
         phase: "queue_ready",
-        message: `当前搜索页已读完，已发现${pageState.state?.counts?.queued || 0}个岗位，开始进入详情面板。`
+        message: diagnostics.reasonCode === "no_results"
+          ? "搜索页明确没有匹配岗位，任务结束。"
+          : `当前搜索页已读完，已发现${pageState.state?.counts?.queued || 0}个岗位，开始读取详情。`
       });
       return;
     }
@@ -611,6 +625,7 @@
     const currentStageElement = document.getElementById("currentStage");
     const currentTitle = document.getElementById("currentTitle");
     const currentMessage = document.getElementById("currentMessage");
+    const diagnosticText = document.getElementById("diagnosticText");
     const currentLink = document.getElementById("currentLink");
 
     badge.textContent = statusLabel;
@@ -620,6 +635,12 @@
     currentStageElement.textContent = statusLabel;
     currentTitle.textContent = state.currentTitle || "暂无岗位";
     currentMessage.textContent = state.message || "任务状态将在这里实时更新。";
+    const diagnostics = state.search?.diagnostics;
+    const diagnosticMessage = diagnostics?.reasonCode && diagnostics.reasonCode !== "ok"
+      ? `${diagnostics.message || "页面诊断已记录。"}（可见链接${Number(diagnostics.visibleJobLinks) || 0}，候选卡片${Number(diagnostics.visibleCardRoots) || 0}，已解析${Number(diagnostics.parsedJobs) || 0}）`
+      : "";
+    diagnosticText.hidden = !diagnosticMessage;
+    diagnosticText.textContent = diagnosticMessage;
     currentLink.hidden = !state.currentJob?.link;
     currentLink.href = state.currentJob?.link || "#";
 

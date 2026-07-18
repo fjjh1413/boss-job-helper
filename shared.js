@@ -64,6 +64,56 @@
     return safeText;
   }
 
+  function diagnoseSearchPage(input = {}) {
+    const url = String(input.url || "");
+    const parsedJobs = Math.max(0, Number(input.parsedJobs) || 0);
+    const visibleJobLinks = Math.max(0, Number(input.visibleJobLinks) || 0);
+    const visibleCardRoots = Math.max(0, Number(input.visibleCardRoots) || 0);
+    const bodyTextLength = Math.max(0, Number(input.bodyTextLength) || 0);
+    const searchRoute = /\/web\/geek\/jobs(?:[/?#]|$)/i.test(url);
+    let reasonCode = "ok";
+    let ok = parsedJobs > 0;
+
+    if (!searchRoute) {
+      reasonCode = "wrong_page";
+    } else if (parsedJobs > 0) {
+      reasonCode = "ok";
+    } else if (input.noResultMarker) {
+      reasonCode = "no_results";
+      ok = true;
+    } else if (visibleJobLinks > 0 && visibleCardRoots === 0) {
+      reasonCode = "selector_mismatch";
+    } else if (visibleCardRoots > 0) {
+      reasonCode = "parser_mismatch";
+    } else if (bodyTextLength === 0) {
+      reasonCode = "page_empty";
+    } else {
+      reasonCode = "list_not_rendered";
+    }
+
+    const messages = {
+      ok: "已识别到岗位列表。",
+      no_results: "搜索页明确显示没有匹配岗位。",
+      wrong_page: "当前标签页不是 BOSS 岗位搜索页。",
+      selector_mismatch: "页面存在岗位链接，但当前岗位卡片选择器未命中。",
+      parser_mismatch: "页面存在岗位卡片，但岗位字段解析为空。",
+      page_empty: "搜索页没有可读取的页面内容。",
+      list_not_rendered: "搜索页已加载，但没有渲染出岗位列表。"
+    };
+    return {
+      ok,
+      reasonCode,
+      message: messages[reasonCode] || "搜索页状态未知。",
+      searchRoute,
+      parsedJobs,
+      visibleJobLinks,
+      visibleCardRoots,
+      bodyTextLength,
+      hasJobText: Boolean(input.hasJobText),
+      noResultMarker: Boolean(input.noResultMarker)
+    };
+  }
+
   function sendRuntimeMessage(message) {
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage(message, (response) => {
@@ -85,6 +135,7 @@
     config,
     buildSearchUrl,
     getScrollBudget,
+    diagnoseSearchPage,
     csvEscape,
     sendRuntimeMessage
   };

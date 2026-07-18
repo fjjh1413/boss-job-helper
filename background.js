@@ -212,14 +212,29 @@ async function recordJobResult(result) {
 }
 
 async function completeAgent() {
-  return updateState((current) => ({
-    ...current,
-    status: "completed",
-    phase: "completed",
-     message: `采集完成：发现${current.counts.discovered}条，详情成功${current.counts.detailsCompleted || 0}条，保存${current.counts.saved}条，失败${current.counts.failed}条，跳过${current.counts.skipped}条。`,
-    currentJob: null,
-    completedAt: new Date().toISOString()
-  }));
+  return updateState((current) => {
+    const discovered = Number(current.counts?.discovered) || 0;
+    const diagnostics = current.search?.diagnostics || {};
+    if (discovered === 0 && diagnostics.reasonCode !== "no_results") {
+      return {
+        ...current,
+        status: "error",
+        phase: "error",
+        message: `任务未完成：没有确认到岗位列表。${diagnostics.message || "请检查 BOSS 搜索页是否正常渲染。"}`,
+        currentJob: null
+      };
+    }
+    return {
+      ...current,
+      status: "completed",
+      phase: "completed",
+      message: diagnostics.reasonCode === "no_results"
+        ? "搜索完成：BOSS 页面明确显示没有匹配岗位。"
+        : `采集完成：发现${discovered}条，详情成功${current.counts.detailsCompleted || 0}条，保存${current.counts.saved}条，失败${current.counts.failed}条，跳过${current.counts.skipped}条。`,
+      currentJob: null,
+      completedAt: new Date().toISOString()
+    };
+  });
 }
 
 async function assertRunner(sender) {
@@ -335,6 +350,8 @@ function decorateState(state) {
     failed: 0,
     skipped: 0,
     missingFields: 0,
+    responseCaptured: 0,
+    domFallback: 0,
     ...(state.counts || {})
   };
   return {

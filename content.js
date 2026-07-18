@@ -563,6 +563,7 @@
     }
 
     const nextPageUrl = findNextPageUrl();
+    const diagnostics = collectSearchDiagnostics(jobs);
     return {
       ok: true,
       version: CONTENT_SCRIPT_VERSION,
@@ -576,7 +577,42 @@
         exhausted: !nextPageUrl && stableRounds >= 2 && reachedBottomRounds >= 1,
         nextPageUrl,
         currentUrl: location.href
-      }
+      },
+      diagnostics
+    };
+  }
+
+  function collectSearchDiagnostics(jobs) {
+    const bodyText = getVisibleText(document.body);
+    const cardSelectorCounts = Object.fromEntries(CARD_SELECTORS.map((selector) => [
+      selector,
+      document.querySelectorAll(selector).length
+    ]));
+    const visibleJobLinks = [...document.querySelectorAll("a[href*='/job_detail/']")].filter(isVisible).length;
+    const visibleDataJobNodes = [...document.querySelectorAll("[data-jobid], [data-job-id]")].filter(isVisible).length;
+    const visibleCardRoots = collectCardRoots().length;
+    const noResultMarker = /暂无(?:相关|匹配|职位|岗位)|没有(?:找到|相关).*(?:职位|岗位)|无(?:相关|匹配).*(?:职位|岗位)/.test(bodyText);
+    const diagnostic = typeof BossJobShared !== "undefined" && typeof BossJobShared.diagnoseSearchPage === "function"
+      ? BossJobShared.diagnoseSearchPage({
+        url: location.href,
+        title: document.title,
+        bodyTextLength: bodyText.length,
+        hasJobText: /岗位|职位|搜索/.test(bodyText),
+        noResultMarker,
+        visibleJobLinks: visibleJobLinks + visibleDataJobNodes,
+        visibleCardRoots,
+        parsedJobs: jobs.length
+      })
+      : { ok: jobs.length > 0, reasonCode: jobs.length > 0 ? "ok" : "unknown", message: "无法生成搜索页诊断。" };
+
+    return {
+      ...diagnostic,
+      title: cleanText(document.title),
+      readyState: document.readyState,
+      cardSelectorCounts,
+      visibleJobLinks,
+      visibleDataJobNodes,
+      visibleCardRoots
     };
   }
 

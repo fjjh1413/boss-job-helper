@@ -113,7 +113,7 @@ h2 { font-size: 16px; line-height: 1.3; }
 
 .metrics {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -187,6 +187,7 @@ h2 { font-size: 16px; line-height: 1.3; }
 .stage[data-state="done"] span { border-color: #8cc9bd; background: #edf9f6; color: #387d6c; }
 
 .current-message { margin-top: 10px; color: var(--muted); line-height: 1.55; }
+.diagnostic-text { margin-top: 9px; color: var(--warning); font-size: 12px; line-height: 1.5; }
 .current-link { display: inline-block; margin-top: 11px; color: var(--brand); font-weight: 700; text-decoration: none; }
 .current-link:hover { text-decoration: underline; }
 

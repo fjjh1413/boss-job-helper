@@ -21,6 +21,8 @@ Build a reliable, user-supervised BOSS job assistant that collects job details f
 - [x] Connected card selection to response-first capture; the existing right-side DOM collector is now an explicit fallback.
 - [x] Added response/fallback metrics to run state and the Agent runner page.
 - [x] Added parser, bridge, and state regression tests; all current tests pass.
+- [x] Added search-page diagnostics and blocked false `已完成 0/0` states when the page has not rendered or the selectors no longer match.
+- [x] Added visible runner diagnostics so the next run shows page route, link count, card count, and parsed-job count when collection is empty.
 
 ## In Progress
 
@@ -45,6 +47,8 @@ Build a reliable, user-supervised BOSS job assistant that collects job details f
 | 2026-07-18 | Bridge behavior tests | Passed same-origin detail capture and ordinary-interface exclusion tests. |
 | 2026-07-18 | Chrome DevTools runtime probe | BOSS SPA loaded and issued `POST /wapi/zpgeek/search/joblist.json`, but the automation page was cleared to `about:blank` before the response completed; the extension was not installed in that DevTools context. |
 | 2026-07-18 | Local Chrome connection | The connected browser runtime exposed only the in-app browser; the user's Chrome extension context was unavailable, so signed-in extension E2E remains pending. |
+| 2026-07-18 | Empty-search diagnosis fix | A zero-job result now records route/card/link/parser diagnostics and stops with an actionable error unless BOSS explicitly shows no matching jobs. |
+| 2026-07-18 | Runner diagnostic display | Empty collection details are rendered in the Agent page instead of being hidden in developer logs. |
 
 ## Decisions
 

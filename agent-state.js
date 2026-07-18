@@ -104,7 +104,8 @@
         exhausted: false,
         currentUrl: "",
         nextPageUrl: "",
-        visitedPageUrls: []
+        visitedPageUrls: [],
+        diagnostics: null
       },
       retryCount: 0,
       userAction: null,
